@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const router = require('./routers/index');
 
+const userController = require('./controllers/userController');
+
 const server = express();
 const PORT = process.env.PORT || 2300;
 
@@ -12,6 +14,8 @@ server.use(express.json());
 server.use(cors());
 server.use(cookieParser());
 server.use('/restapi', router);
+
+// server.post('/restapi/registration', userController.regist)
 
 
 const start = async () => {
