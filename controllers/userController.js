@@ -1,21 +1,20 @@
 const userService = require("../services/userService");
 const {validationResult} = require('express-validator');
+const AuthError = require('../exceptions/AuthError');
 
 class UserController {
     async regist(req, res, next) {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
-                return await res.json({errorDescription: "Problem with email or password"});
+                return next(AuthError.BadRequest("Validation error", errors.array()));
             }
             const {email, password} = req.body;
-            console.log(email, password)
             const userData = await userService.registration(email, password);
             res.cookie('refreshToken', userData.refreshToken, {maxAge: 30*24*60*60*1000, httpOnly: true})
             return await res.json(userData);
         } catch (error) {
-            console.error(error);
-            return await res.json({errorDescription: "User already exist"});
+            next(error);
         }
     }
 
@@ -26,7 +25,7 @@ class UserController {
             res.cookie('refreshToken', userData.refreshToken, {maxAge: 30*24*60*60*1000, httpOnly: true})
             return await res.json(userData);
         } catch (error) {
-            console.error(error)
+            next(error);
         }
     }
 
@@ -37,7 +36,7 @@ class UserController {
             res.clearCookie('refreshToken');
             return res.json(token);
         } catch (error) {
-
+            next(error);
         }
     }
 
@@ -47,7 +46,7 @@ class UserController {
             await userService.activate(link);
             return res.redirect(process.env.CLIENT_URL);
         } catch (error) {
-            console.error(error);
+            next(error);
         }
     }
 
@@ -58,15 +57,7 @@ class UserController {
             res.cookie('refreshToken', userData.refreshToken, {maxAge: 30*24*60*60*1000, httpOnly: true})
             return await res.json(userData);
         } catch (error) {
-            
-        }
-    }
-
-    async getUsers(req, res, next) {
-        try {
-
-        } catch (error) {
-
+            next(error);            
         }
     }
 }

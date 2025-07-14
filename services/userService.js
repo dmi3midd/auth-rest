@@ -1,16 +1,17 @@
-const UserModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const uuid = require('uuid');
 
+const UserModel = require('../models/userModel');
 const emailService = require('./emailService');
 const tokenService = require('./tokenService');
 const UserDto = require('../dtos/userDto');
+const AuthError = require('../exceptions/AuthError');
 
 class UserService {
     async registration(email, password) {
         const candidate = await UserModel.findOne({email});
         if (candidate) {
-            throw new Error(`User with this email (${email}) already exist`);
+            throw AuthError.BadRequest(`User with this email (${email}) already exist`);
         }
         const hashedPassword = await bcrypt.hash(password, 3);
         const activationLink = uuid.v4();
@@ -28,7 +29,7 @@ class UserService {
     async activate(link) {
         const user = await UserModel.findOne({link})
         if (!user) {
-            throw new Error("Wrong activation link");
+            throw AuthError.BadRequest("Wrong activation link");
         }
         user.isActivated = true;
         await user.save();
@@ -37,11 +38,11 @@ class UserService {
     async login(email, password) {
         const user = await UserModel.findOne({email});
         if (!user) {
-            throw new Error("User doesn't exist");
+            throw AuthError.BadRequest("User doesn't exist");
         }
         const isPasswordEq = await bcrypt.compare(password, user.password);
         if (!isPasswordEq) {
-            throw new Error("Wrong password");
+            throw AuthError.BadRequest("Wrong password");
         }
         const userDto = new UserDto(user);
         const tokens = tokenService.generateTokens({...userDto});
@@ -59,12 +60,12 @@ class UserService {
 
     async refresh(refreshToken) {
         if (!refreshToken) {
-            throw new Error("Unauthorized");
+            throw AuthError.Unauthorized();
         }
         const userData = tokenService.validateRefreshToken(refreshToken);
         const foundToken = await tokenService.findToken(refreshToken);
         if(!userData || !foundToken) {
-            throw new Error("Unauthorized");
+            throw AuthError.Unauthorized();
         }
         const user = await UserModel.findById(userData.id);
         const userDto = new UserDto(user);
